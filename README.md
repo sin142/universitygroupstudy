@@ -1,0 +1,2 @@
+# universitygroupstudy
+ゼミで行うグループ研究用のファイルを置くリポジトリです。
