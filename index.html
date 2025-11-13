@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <!-- スマートフォンでの表示と、拡大縮小の制御 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>決済アプリ</title>
+    <title>決済UI実験モックアップ</title>
 
     <!-- 1. CSS（すべてのスタイルをここに格納） -->
     <style>
@@ -234,7 +234,7 @@
             background-color: var(--gauge1-fill);
             border-radius: 12px 0 0 12px;
             /* Step 1: 減少アニメーション */
-            transition: width 0.8s ease-out; 
+            /* transition: width 0.8s ease-out; (JSで制御するため削除) */
         }
 
         /* ゲージ2: ズームアウト用ビューポート */
@@ -248,7 +248,7 @@
             height: 100%;
             display: flex;
             /* Step 3: ズームアウト（変形）アニメーション */
-            transition: transform 1.2s ease-in-out;
+            /* transition: transform 1.2s ease-in-out; (JSで制御するため削除) */
             /* アニメーションの基点を左端に設定 */
             transform-origin: left center;
         }
@@ -272,7 +272,7 @@
             background-color: var(--gauge2-app);
             border-radius: 12px 0 0 12px; /* ズームイン状態で見えるため */
             /* Step 1: 減少アニメーション */
-            transition: width 0.8s ease-out;
+            /* transition: width 0.8s ease-out; (JSで制御するため削除) */
         }
         
         /* 支払い金額（赤色） */
@@ -299,6 +299,7 @@
             
             <button id="btn-setup-complete">設定完了</button>
         </div>
+        <p>※仮想の金額を入力してください</p>
     </div>
 
     <!-- 画面B： 待機（ホーム） -->
@@ -459,7 +460,10 @@
          * 数値を日本円形式（3桁区切り）の文字列にフォーマットする
          */
         function formatCurrency(value) {
-            return new Intl.NumberFormat('ja-JP').format(value);
+            // アニメーション計算で丸め誤差が起きないよう、
+            // 表示（format）と計算（value）を分離する
+            const num = Math.round(value); // 念のため整数に丸める
+            return new Intl.NumberFormat('ja-JP').format(num);
         }
 
         /* --- 4. 各画面の詳細仕様（イベントリスナー） --- */
@@ -657,26 +661,30 @@
                 totalAssetsBeforePayment
             } = experimentState;
 
-            // 2. 数字情報を即座に表示
+            // 2. 数字情報を即座に表示（丸め誤差を考慮し、支払い後の値を再計算）
+            const preciseAppBalance = appBalanceBeforePayment - paymentAmount;
+            const preciseTotalAssets = totalAssetsBeforePayment - paymentAmount;
+
             document.getElementById('display-payment-amount').textContent = `- ${formatCurrency(paymentAmount)}円`;
-            document.getElementById('display-app-balance-after').textContent = `${formatCurrency(appBalance)}円`;
-            document.getElementById('display-total-assets-after').textContent = `${formatCurrency(totalAssets)}円`;
+            document.getElementById('display-app-balance-after').textContent = `${formatCurrency(preciseAppBalance)}円`;
+            document.getElementById('display-total-assets-after').textContent = `${formatCurrency(preciseTotalAssets)}円`;
 
             // 3. アニメーション計算
             
             // Step 1: 局所ゲージの減少後の幅（割合）
-            // appBalanceBeforePayment が 0 の場合（理論上ありえないが）の 0除算を避ける
-            const gauge1FillPercent = appBalanceBeforePayment > 0 ? (appBalance / appBalanceBeforePayment) * 100 : 0;
+            const gauge1FillPercent = appBalanceBeforePayment > 0 ? (preciseAppBalance / appBalanceBeforePayment) * 100 : 0;
 
             // Step 3: ズームアウト後の各領域の幅（割合）
-            // totalAssetsBeforePayment が 0 の場合（理論上ありえないが）の 0除算を避ける
             const appBalancePercentOfTotal = totalAssetsBeforePayment > 0 ? (appBalanceBeforePayment / totalAssetsBeforePayment) * 100 : 100;
             const otherAssetsPercentOfTotal = 100 - appBalancePercentOfTotal;
-            
-            // ズームイン状態（State 0）のスケールと移動量を計算
-            // appBalancePercentOfTotal が 0 の場合（理論上ありえないが）の 0除算を避ける
-            const zoomInScale = appBalancePercentOfTotal > 0 ? 100 / appBalancePercentOfTotal : 1;
+
+            // --- ★★★ 修正された「ズームイン」ロジック ★★★ ---
+            // ズームイン状態（State 0）の計算
+            // appBalanceが10%なら、Bar全体を1000% (100/10)に引き伸ばす
+            const zoomInBarWidth = appBalancePercentOfTotal > 0 ? 100 / (appBalancePercentOfTotal / 100) : 100;
+            // otherAssetsが90%なら、Bar全体を-90%（= -900% / 1000%）移動させる
             const zoomInTranslateX = -otherAssetsPercentOfTotal;
+
             
             // 4. アニメーション初期設定 (State 0)
             
@@ -693,33 +701,40 @@
             gauge2AppBalance.style.width = `${appBalancePercentOfTotal}%`;
             gauge2AppFill.style.width = '100%'; // この時点ではアプリ残高内のfillは100%
             
+            // --- ★★★ 修正された「ズームイン」適用 ★★★ ---
             // ゲージ2を「ズームイン状態」に即時設定
-            gauge2TotalBar.style.transform = `translateX(${zoomInTranslateX}%) scaleX(${zoomInScale})`;
-            
-            
-            // 5. アニメーション実行 (requestAnimationFrame をネストして描画タイミングを制御)
-            requestAnimationFrame(() => {
-                // DOMに初期設定(State 0)を反映させるための遅延（ブラウザに描画させる）
-                requestAnimationFrame(() => {
-                    
-                    // Step 1: 減少アニメーション（transitionを再有効化）
-                    gauge1Fill.style.transition = 'width 0.8s ease-out';
-                    gauge2AppFill.style.transition = 'width 0.8s ease-out';
-                    
-                    gauge1Fill.style.width = `${gauge1FillPercent}%`;
-                    gauge2AppFill.style.width = `${gauge1FillPercent}%`;
+            // 1. TotalBarを appBalance が 100% に見えるよう引き伸ばす (例: width: 1000%)
+            gauge2TotalBar.style.width = `${zoomInBarWidth}%`;
+            // 2. otherAssets が見えなくなるよう、Barを左にずらす (例: transform: translateX(-90%))
+            gauge2TotalBar.style.transform = `translateX(${zoomInTranslateX}%)`;
+            // ------------------------------------------------
 
-                    // Step 2 & 3: ゲージ1の減少完了を待つ (0.8秒後)
-                    // 信頼性の低い transitionend の代わりに setTimeout を使用する
-                    setTimeout(() => {
-                        // Step 3: ズームアウト（transitionを再有効化）
-                        gauge2TotalBar.style.transition = 'transform 1.2s ease-in-out';
-                        // transform をリセットして「ズームアウト」実行
-                        gauge2TotalBar.style.transform = 'translateX(0) scaleX(1)';
-                        
-                    }, 800); // Step 1 の transition 時間 (0.8s = 800ms)
-                });
-            });
+            
+            // 5. アニメーション実行 (setTimeout を使って描画タイミングを制御)
+            
+            // 50msの遅延を与え、ブラウザが State 0（ズームイン状態）を確実に描画するのを待つ
+            setTimeout(() => {
+                
+                // Step 1: 減少アニメーション（transitionを再有効化）
+                // 仕様書通り、gauge1 と gauge2-app-fill の width を同時にアニメーション
+                gauge1Fill.style.transition = 'width 0.8s ease-out';
+                gauge2AppFill.style.transition = 'width 0.8s ease-out';
+                
+                gauge1Fill.style.width = `${gauge1FillPercent}%`;
+                gauge2AppFill.style.width = `${gauge1FillPercent}%`;
+
+                // Step 2 & 3: ゲージ1の減少完了を待つ (0.8秒後)
+                setTimeout(() => {
+                    // Step 3: ズームアウト（transitionを再有効化）
+                    // 仕様書通り、gauge2-total-bar の transform と width を同時にアニメーション
+                    gauge2TotalBar.style.transition = 'transform 1.2s ease-in-out, width 1.2s ease-in-out';
+                    
+                    // transform と width をリセットして「ズームアウト」実行
+                    gauge2TotalBar.style.width = '100%';
+                    gauge2TotalBar.style.transform = 'translateX(0)';
+                    
+                }, 800); // Step 1 の transition 時間 (0.8s = 800ms)
+            }, 50); // 50msの遅延（State 0 の描画保証のため）
         }
     </script>
 
