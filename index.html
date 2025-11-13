@@ -30,6 +30,10 @@
             padding: 0;
             /* iOSでのオーバースクロール（バウンス）を無効化 */
             overscroll-behavior: none;
+            /* ページ全体のスクロールを禁止 */
+            overflow: hidden;
+            /* 画面(screen)の絶対配置の基準点にする */
+            position: relative;
         }
 
         /* --- 画面制御 --- */
@@ -38,9 +42,20 @@
             box-sizing: border-box;
             padding: 24px;
             width: 100%;
-            min-height: 100vh;
-            /* Flexboxで中央揃え（垂直） */
-            display: flex;
+            /* モバイルのツールバーを考慮したビューポート高さいっぱいに変更 */
+            height: 100svh; /* 以前は min-height: 100vh; */
+            
+            /* --- 変更点：ここから --- */
+            /* 各画面を重ねるために絶対配置 */
+            position: absolute;
+            top: 0;
+            left: 0;
+            
+            /* もし画面内のコンテンツが溢れた場合、画面内だけスクロールさせる */
+            overflow-y: auto;
+            /* --- 変更点：ここまで --- */
+            
+            /* Flexbox関連の指定は .screen.active 側で有効になる */
             flex-direction: column;
             justify-content: flex-start; /* 上寄せで開始 */
             align-items: center;
