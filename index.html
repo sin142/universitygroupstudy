@@ -295,6 +295,10 @@
                 <!-- (★ z-index案) ゲージ2（容器） -->
                 <div id="gauge2-viewport" class="gauge-container">
                     
+                    <!-- (★ 修正) 1. 容器（背景）レイヤー (z-index: 2) -->
+                    <!-- この要素が欠落していたことがバグの原因 -->
+                    <div id="gauge2-container-bg" class="gauge-layer"></div>
+                    
                     <!-- (★ z-index案) レイヤー（奥）: 総資産 -->
                     <div id="gauge2-total-layer" class="gauge-layer">
                         <div id="gauge2-other-assets"></div>
