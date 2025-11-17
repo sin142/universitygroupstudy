@@ -662,7 +662,7 @@
                     // --- ステップ2: 「アプリ残高」を圧縮（0.4秒） ---
                     
                     // (緑ゲージ（親）に width と left のアニメーションを設定)
-                    gauge2AppLayer.style.transition = 'width 0.4s ease-in-out, left 0.4s ease-in-out';
+                    gauge2AppLayer.style.transition = 'width 0.8s ease-in-out, left 0.8s ease-in-out';
                     
                     // 描画フレームを待ってからアニメーションを実行
                     setTimeout(() => {
@@ -693,7 +693,7 @@
                             gauge2TotalLayer.style.opacity = 1;
                         }, 0); // 0msの遅延（次の描画フレーム）
 
-                    }, 400); // ステップ2(圧縮)のアニメーション時間
+                    }, 800); // ステップ2(圧縮)のアニメーション時間
                     
                 }, 800); // 同期減少アニメーションの時間 (0.8s = 800ms)
             }, 50); // 50msの遅延（State 0 の描画保証のため）
