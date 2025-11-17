@@ -532,7 +532,9 @@
                 // 　　s わずかな遅延(次のフレーム)を挟む
                 setTimeout(() => {
                     gauge1Fill.style.width = `${gauge1FillPercent}%`;
-                    gauge2AppFill.style.width = `${gaugeFille1Percent}%`; // 100% -> 80%
+                    // ★ 修正: 下記の変数名のタイポを修正
+                    // (誤) gaugeFille1Percent -> (正) gauge1FillPercent
+                    gauge2AppFill.style.width = `${gauge1FillPercent}%`; // 100% -> 80%
                 }, 0); // 0msの遅延（次の描画フレーム）
 
                 // (この 0.8秒間、隙間からは「容器」の背景色 --gauge-bg が見える)
