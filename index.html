@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <!-- スマートフォンでの表示と、拡大縮小の制御 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>スマホ決済UI</title>
+    <title>決済UI実験モックアップ</title>
 
     <!-- 1. CSS（すべてのスタイルをここに格納） -->
     <style>
@@ -292,13 +292,14 @@
         <div class="container">
             <h2>初期設定</h2>
             <label for="input-total-assets" class="label">1. 総資産額（銀行預金など）</label>
-            <input type="number" id="input-total-assets" placeholder="例: 500000">
+            <input type="number" id="input-total-assets" placeholder="例: 1000000">
             
             <label for="input-app-balance" class="label">2. アプリへの初期チャージ額</label>
-            <input type="number" id="input-app-balance" placeholder="例: 10000">
+            <input type="number" id="input-app-balance" placeholder="例: 50000">
             
             <button id="btn-setup-complete">設定完了</button>
         </div>
+        <p>※仮想の金額を入力してください</p>
     </div>
 
     <!-- 画面B： 待機（ホーム） -->
@@ -643,24 +644,31 @@
         /* --- 4.5. 画面E: 決済完了アニメーション --- */
         
         // アニメーション用のDOM要素をキャッシュ
+        // (★ あなたの z-index 案（圧縮・結合）用にキャッシュを更新)
         const gauge1Fill = document.getElementById('gauge1-fill');
+        
+        // ゲージ2（容器）
         const gauge2Viewport = document.getElementById('gauge2-viewport');
-        const gauge2TotalBar = document.getElementById('gauge2-total-bar');
-        const gauge2OtherAssets = document.getElementById('gauge2-other-assets');
-        const gauge2AppBalance = document.getElementById('gauge2-app-balance');
+        
+        // レイヤー（手前）: アプリ残高
+        const gauge2AppLayer = document.getElementById('gauge2-app-layer');
         const gauge2AppFill = document.getElementById('gauge2-app-fill');
 
+        // レイヤー（奥）: 総資産
+        const gauge2TotalLayer = document.getElementById('gauge2-total-layer');
+        const gauge2OtherAssets = document.getElementById('gauge2-other-assets');
+
+
+        // (★ runPaymentAnimation 関数を「圧縮・結合」ロジックに全面的に書き換え)
         function runPaymentAnimation() {
             // 1. データを読み込み
             const {
                 paymentAmount,
-                appBalance, // 支払い後
-                totalAssets, // 支払い後
                 appBalanceBeforePayment,
                 totalAssetsBeforePayment
             } = experimentState;
 
-            // 2. 数字情報を即座に表示（丸め誤差を考慮し、支払い後の値を再計算）
+            // 2. 数字情報を即座に表示（丸め誤差を考慮）
             const preciseAppBalance = appBalanceBeforePayment - paymentAmount;
             const preciseTotalAssets = totalAssetsBeforePayment - paymentAmount;
 
@@ -670,69 +678,65 @@
 
             // 3. アニメーション計算
             
-            // Step 1: 局所ゲージの減少後の幅（割合）
+            // ステップ1: 局所ゲージの減少後の幅（割合）
             const gauge1FillPercent = appBalanceBeforePayment > 0 ? (preciseAppBalance / appBalanceBeforePayment) * 100 : 0;
 
-            // Step 3: ズームアウト後の各領域の幅（割合）
-            const appBalancePercentOfTotal = totalAssetsBeforePayment > 0 ? (appBalanceBeforePayment / totalAssetsBeforePayment) * 100 : 100;
+            // ステップ2/3: 最終状態（総資産）の各領域の幅（割合）
+            // totalAssetsBeforePayment が 0 の場合（理論上ありえない）の 0除算を避ける
+            const appBalancePercentOfTotal = totalAssetsBeforePayment > 0 ? (preciseAppBalance / totalAssetsBeforePayment) * 100 : 0;
             const otherAssetsPercentOfTotal = 100 - appBalancePercentOfTotal;
-
-            // --- ★★★ 修正された「ズームイン」ロジック ★★★ ---
-            // ズームイン状態（State 0）の計算
-            // appBalanceが10%なら、Bar全体を1000% (100/10)に引き伸ばす
-            const zoomInBarWidth = appBalancePercentOfTotal > 0 ? 100 / (appBalancePercentOfTotal / 100) : 100;
-            // otherAssetsが90%なら、Bar全体を-90%（= -900% / 1000%）移動させる
-            const zoomInTranslateX = -otherAssetsPercentOfTotal;
 
             
             // 4. アニメーション初期設定 (State 0)
             
-            // まずアニメーション（transition）を一時的に無効化
+            // アニメーション（transition）を一時的に無効化
             gauge1Fill.style.transition = 'none';
+            gauge2AppLayer.style.transition = 'none';
             gauge2AppFill.style.transition = 'none';
-            gauge2TotalBar.style.transition = 'none';
+            gauge2TotalLayer.style.transition = 'none';
             
             // ゲージ1を100%に
             gauge1Fill.style.width = '100%';
             
-            // ゲージ2のズームアウト後（最終状態）の各領域の幅を設定
-            gauge2OtherAssets.style.width = `${otherAssetsPercentOfTotal}%`;
-            gauge2AppBalance.style.width = `${appBalancePercentOfTotal}%`;
-            gauge2AppFill.style.width = '100%'; // この時点ではアプリ残高内のfillは100%
+            // レイヤー（手前）: アプリ残高ゲージを100%に
+            gauge2AppLayer.style.width = '100%';
+            gauge2AppFill.style.width = '100%';
             
-            // --- ★★★ 修正された「ズームイン」適用 ★★★ ---
-            // ゲージ2を「ズームイン状態」に即時設定
-            // 1. TotalBarを appBalance が 100% に見えるよう引き伸ばす (例: width: 1000%)
-            gauge2TotalBar.style.width = `${zoomInBarWidth}%`;
-            // 2. otherAssets が見えなくなるよう、Barを左にずらす (例: transform: translateX(-90%))
-            gauge2TotalBar.style.transform = `translateX(${zoomInTranslateX}%)`;
-            // ------------------------------------------------
-
+            // レイヤー（奥）: 総資産ゲージを0%に（隠す）
+            gauge2TotalLayer.style.width = '0%';
             
-            // 5. アニメーション実行 (setTimeout を使って描画タイミングを制御)
             
-            // 50msの遅延を与え、ブラウザが State 0（ズームイン状態）を確実に描画するのを待つ
+            // 5. アニメーション実行 (あなたの「圧縮・結合」ステップ)
+            
+            // 50msの遅延を与え、ブラウザが State 0 を確実に描画するのを待つ
             setTimeout(() => {
                 
-                // Step 1: 減少アニメーション（transitionを再有効化）
-                // 仕様書通り、gauge1 と gauge2-app-fill の width を同時にアニメーション
+                // ステップ1:【同期減少】
                 gauge1Fill.style.transition = 'width 0.8s ease-out';
                 gauge2AppFill.style.transition = 'width 0.8s ease-out';
                 
                 gauge1Fill.style.width = `${gauge1FillPercent}%`;
-                gauge2AppFill.style.width = `${gauge1FillPercent}%`;
+                gauge2AppFill.style.width = `${gauge1FillPercent}%`; // 100% -> 80%
+                
+                // (この 0.8秒間、隙間からは「容器」の背景色 --gauge-bg が見える)
 
-                // Step 2 & 3: ゲージ1の減少完了を待つ (0.8秒後)
+                // ステップ2 & 3:【圧縮・結合】（減少アニメーションの完了を待つ）
                 setTimeout(() => {
-                    // Step 3: ズームアウト（transitionを再有効化）
-                    // 仕様書通り、gauge2-total-bar の transform と width を同時にアニメーション
-                    gauge2TotalBar.style.transition = 'transform 1.2s ease-in-out, width 1.2s ease-in-out';
+                    // アニメーション（transition）を設定
+                    // アプリ残高は「幅」が 0.4s かけて縮小
+                    // 総資産は「幅」が 0.4s かけて増加
+                    gauge2AppLayer.style.transition = 'width 0.4s ease-in-out';
+                    gauge2TotalLayer.style.transition = 'width 0.4s ease-in-out';
                     
-                    // transform と width をリセットして「ズームアウト」実行
-                    gauge2TotalBar.style.width = '100%';
-                    gauge2TotalBar.style.transform = 'translateX(0)';
+                    // ステップ2:「アプリ残高」を右端で圧縮（幅を最終割合に変更）
+                    gauge2AppLayer.style.width = `${appBalancePercentOfTotal}%`;
                     
-                }, 800); // Step 1 の transition 時間 (0.8s = 800ms)
+                    // ステップ3:「総資産」を左側から出現（幅を最終割合に変更）
+                    gauge2TotalLayer.style.width = `${otherAssetsPercentOfTotal}%`;
+                    
+                    // (この 0.4秒間、両者が同時にアニメーションし「結合」する)
+                    
+                }, 800); // 同期減少アニメーションの時間 (0.8s = 800ms)
             }, 50); // 50msの遅延（State 0 の描画保証のため）
         }
     </script>
