@@ -121,9 +121,11 @@
             overflow: hidden;
             position: relative;
             
-            /* (★ z-index案) 容器（背景色） */
+            /* (★ 修正) 
+               z-index と background-color を削除 (親はz-indexを持たない) 
             background-color: var(--gauge-bg);
-            z-index: 2; /* 2. 容器（背景） */
+            z-index: 2; 
+            */
         }
 
         /* ゲージ1: 局所ゲージ */
@@ -145,6 +147,13 @@
             top: 0;
             height: 100%;
             border-radius: 12px 0 0 12px;
+        }
+        
+        /* (★ 追加) 容器（背景）レイヤー */
+        #gauge2-container-bg {
+            z-index: 2; /* 2. 容器 (中間) */
+            width: 100%;
+            background-color: var(--gauge-bg);
         }
 
         /* レイヤー（手前）: アプリ残高 (z-index: 3) */
@@ -192,10 +201,10 @@
         <div class="container">
             <h2>初期設定</h2>
             <label for="input-total-assets" class="label">1. 総資産額（銀行預金など）</label>
-            <input type="number" id="input-total-assets" placeholder="例: 100000">
+            <input type="number" id="input-total-assets" placeholder="例: 1000000">
             
             <label for="input-app-balance" class="label">2. アプリへの初期チャージ額</label>
-            <input type="number" id="input-app-balance" placeholder="例: 5000">
+            <input type="number" id="input-app-balance" placeholder="例: 50000">
             
             <button id="btn-setup-complete">設定完了</button>
         </div>
