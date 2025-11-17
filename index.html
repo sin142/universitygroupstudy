@@ -292,10 +292,10 @@
         <div class="container">
             <h2>初期設定</h2>
             <label for="input-total-assets" class="label">1. 総資産額（銀行預金など）</label>
-            <input type="number" id="input-total-assets" placeholder="例: 1000000">
+            <input type="number" id="input-total-assets" placeholder="例: 200000">
             
             <label for="input-app-balance" class="label">2. アプリへの初期チャージ額</label>
-            <input type="number" id="input-app-balance" placeholder="例: 50000">
+            <input type="number" id="input-app-balance" placeholder="例: 10000">
             
             <button id="btn-setup-complete">設定完了</button>
         </div>
@@ -715,9 +715,13 @@
                 gauge1Fill.style.transition = 'width 0.8s ease-out';
                 gauge2AppFill.style.transition = 'width 0.8s ease-out';
                 
-                gauge1Fill.style.width = `${gauge1FillPercent}%`;
-                gauge2AppFill.style.width = `${gauge1FillPercent}%`; // 100% -> 80%
-                
+                // ★ 修正: transition の設定をブラウザに描画させるため、
+                // 　　　　　 わずかな遅延(次のフレーム)を挟む
+                setTimeout(() => {
+                    gauge1Fill.style.width = `${gauge1FillPercent}%`;
+                    gauge2AppFill.style.width = `${gauge1FillPercent}%`; // 100% -> 80%
+                }, 0); // 0msの遅延（次の描画フレーム）
+
                 // (この 0.8秒間、隙間からは「容器」の背景色 --gauge-bg が見える)
 
                 // ステップ2 & 3:【圧縮・結合】（減少アニメーションの完了を待つ）
@@ -728,11 +732,14 @@
                     gauge2AppLayer.style.transition = 'width 0.4s ease-in-out';
                     gauge2TotalLayer.style.transition = 'width 0.4s ease-in-out';
                     
-                    // ステップ2:「アプリ残高」を右端で圧縮（幅を最終割合に変更）
-                    gauge2AppLayer.style.width = `${appBalancePercentOfTotal}%`;
-                    
-                    // ステップ3:「総資産」を左側から出現（幅を最終割合に変更）
-                    gauge2TotalLayer.style.width = `${otherAssetsPercentOfTotal}%`;
+                    // ★ 修正: こちらも同様に、次の描画フレームを待つ
+                    setTimeout(() => {
+                        // ステップ2:「アプリ残高」を右端で圧縮（幅を最終割合に変更）
+                        gauge2AppLayer.style.width = `${appBalancePercentOfTotal}%`;
+                        
+                        // ステップ3:「総資産」を左側から出現（幅を最終割合に変更）
+                        gauge2TotalLayer.style.width = `${otherAssetsPercentOfTotal}%`;
+                    }, 0); // 0msの遅延（次の描画フレーム）
                     
                     // (この 0.4秒間、両者が同時にアニメーションし「結合」する)
                     
