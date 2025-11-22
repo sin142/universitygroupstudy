@@ -194,11 +194,10 @@
     <div id="screenA" class="screen active">
         <div class="container">
             <h2>初期設定</h2>
-            <label for="input-total-assets" class="label">1. 総資産額（銀行預金など）</label>
+            <label for="input-total-assets" class="label">総資産額（銀行預金など）</label>
             <input type="number" id="input-total-assets" placeholder="例: 100000">
             
-            <label for="input-app-balance" class="label">2. アプリへの初期チャージ額</label>
-            <input type="number" id="input-app-balance" placeholder="例: 5000">
+            <!-- (★ 修正) アプリへの初期チャージ額入力を削除 -->
             
             <button id="btn-setup-complete">設定完了</button>
         </div>
@@ -386,24 +385,19 @@
             /* --- 4.1. 画面A： 初期設定 --- */
             document.getElementById('btn-setup-complete').addEventListener('click', () => {
                 const totalAssets = parseFloat(document.getElementById('input-total-assets').value);
-                const appBalance = parseFloat(document.getElementById('input-app-balance').value);
+                
+                // (★ 修正) アプリへの初期チャージ額取得を削除
                 
                 // バリデーション
-                if (isNaN(totalAssets) || isNaN(appBalance) || totalAssets <= 0 || appBalance <= 0) {
-                    // (★ 修正) alert() からカスタムUI（未実装）へ
+                // (★ 修正) appBalance関連のチェックを削除
+                if (isNaN(totalAssets) || totalAssets <= 0) {
                     console.warn("有効な金額を入力してください。");
-                    // alert("有効な金額を入力してください。");
-                    return;
-                }
-                if (totalAssets < appBalance) {
-                    console.warn("総資産額は、アプリへのチャージ額以上である必要があります。");
-                    // alert("総資産額は、アプリへのチャージ額以上である必要があります。");
                     return;
                 }
                 
                 // データを保存
                 experimentState.totalAssets = totalAssets;
-                experimentState.appBalance = appBalance;
+                experimentState.appBalance = 0; // (★ 修正) 初期残高は0円スタート
                 
                 // 画面Bへ遷移
                 showScreen('screenB');
@@ -662,6 +656,8 @@
                     // --- ステップ2: 「アプリ残高」を圧縮（0.4秒） ---
                     
                     // (緑ゲージ（親）に width と left のアニメーションを設定)
+                    
+                    // ★ 修正: 圧縮時間を 0.8秒に変更
                     gauge2AppLayer.style.transition = 'width 0.8s ease-in-out, left 0.8s ease-in-out';
                     
                     // 描画フレームを待ってからアニメーションを実行
@@ -673,18 +669,16 @@
 
 
                     // --- ステップ3:「圧縮」の完了を待って「総資産」を出現 ---
-                    // (0.8s + 0.4s = 1.2s後)
+                    
+                    // ★ 修正: 圧縮完了待ち時間を 800ms に変更
                     setTimeout(() => {
                         
                         // (★ 修正) 「スナップ」表示から「フェードイン」表示に変更
 
                         // 1. まず、z-index と幅を（まだ透明なまま）設定
-                        gauge2TotalLayer.style.transition = 'none'; 
-                        gauge2TotalLayer.style.zIndex = 3; 
-                        gauge2TotalLayer.style.opacity = 0; 
-                        // ★★★★★★★★★★★★★★★★★★★★★★★★
-                        // ★ 修正: 欠落していた width の設定を追加
-                        // ★★★★★★★★★★★★★★★★★★★★★★★★
+                        gauge2TotalLayer.style.transition = 'none'; // アニメーションを一旦リセット
+                        gauge2TotalLayer.style.zIndex = 3; // 手前に持ってくる
+                        gauge2TotalLayer.style.opacity = 0; // まだ透明
                         gauge2OtherAssets.style.width = `${otherAssetsPercentOfTotal}%`; // 正しい幅
 
                         // 2. 次のフレームで、opacity の transition を設定してフェードイン開始
